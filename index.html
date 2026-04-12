@@ -738,8 +738,9 @@ async function loadDemandes(){
   data.forEach(d=>{
     const div=document.createElement('div');
     div.className='demande-card';
-    const badgeClass=d.statut==='en_attente'?'badge-attente':d.statut==='actif'?'badge-actif':'badge-refuse';
-    const badgeLabel=d.statut==='en_attente'?'En attente':d.statut==='actif'?'Accepté':'Refusé';
+    const isAccepted=(d.statut==='actif'||d.statut==='accepté');
+    const badgeClass=d.statut==='en_attente'?'badge-attente':isAccepted?'badge-actif':'badge-refuse';
+    const badgeLabel=d.statut==='en_attente'?'En attente':isAccepted?'Accepté':'Refusé';
     div.innerHTML=`
       <div class="demande-header">
         <span class="demande-name">${esc(d.prenom)} ${esc(d.nom)}</span>
@@ -1016,13 +1017,18 @@ async function loadDashboard(){
   list.innerHTML='<div style="text-align:center;padding:1.5rem;color:var(--text-muted);font-size:13px;">Chargement…</div>';
   let sessions=[];
   try{
+    // Fetch direct pour éviter les problèmes d'encodage
+    const r = await fetch(
+      SUPABASE_URL+'/rest/v1/questions_session?select=session_id,updated_at,animateur_id&order=updated_at.desc',
+      {headers: svcHeaders()}
+    );
+    const all = r.ok ? await r.json() : [];
     if(currentUser&&!currentUser.isAdmin){
-      const mine = await dbGet('questions_session','select=session_id,updated_at,animateur_id&animateur_id=eq.'+currentUser.id+'&order=updated_at.desc');
-      sessions = mine||[];
+      sessions = all.filter(s => s.animateur_id === currentUser.id);
     } else {
-      sessions = await dbGet('questions_session','select=session_id,updated_at,animateur_id&order=updated_at.desc')||[];
+      sessions = all;
     }
-  }catch(e){}
+  }catch(e){console.error('loadDashboard error:',e);}
   if(!sessions.length){list.innerHTML='<div class="empty-sessions">Aucune session.<br>Créez votre première session !</div>';return;}
   list.innerHTML='';
   for(const s of sessions){
