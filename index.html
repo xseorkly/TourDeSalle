@@ -797,7 +797,7 @@ async function ajouterAnimateur(){
   errEl.style.display='none';
 
   if(!prenom||!nom||!email||!pwd){errEl.textContent='Prénom, nom, email et mot de passe sont obligatoires.';errEl.style.display='block';return;}
-  if(!email.endsWith('@aefe.fr')){errEl.textContent='L'email doit être en @aefe.fr.';errEl.style.display='block';return;}
+  if(!email.endsWith('@aefe.fr')){errEl.textContent="L'email doit être en @aefe.fr.";errEl.style.display='block';return;}
   if(pwd.length<6){errEl.textContent='Le mot de passe doit faire au moins 6 caractères.';errEl.style.display='block';return;}
 
   // Vérifier si déjà existant
@@ -809,7 +809,7 @@ async function ajouterAnimateur(){
   if(!r){errEl.textContent='Erreur lors de la création.';errEl.style.display='block';return;}
 
   closeModal('modal-add-anim');
-  await confirmInline('✓ Compte créé pour '+prenom+' '+nom+'\n\nEmail : '+email+'\nMot de passe : '+pwd+'\n\nCommuniquez ces informations à l'animateur.');
+  await confirmInline('✓ Compte créé pour '+prenom+' '+nom+'\n\nEmail : '+email+'\nMot de passe : '+pwd+'\n\nCommuniquez ces informations à l\'animateur.');
   loadAnimateurs();
 }
 
