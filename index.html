@@ -165,7 +165,7 @@
     <p class="modal-title">🔑 Connexion animateur</p>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:1rem;line-height:1.5;">Connectez-vous avec votre email et mot de passe.</p>
     <div class="card-label" style="margin-bottom:6px;">Email</div>
-    <input type="email" id="login-email" placeholder="votre@email.fr" style="margin-bottom:10px;" onkeydown="if(event.key==='Enter')doLogin()"/>
+    <input type="email" id="login-email" placeholder="admin ou votre@email.fr" style="margin-bottom:10px;" onkeydown="if(event.key==='Enter')doLogin()"/>
     <div class="card-label" style="margin-bottom:6px;">Mot de passe</div>
     <input type="password" id="login-pwd" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"/>
     <div class="modal-error" id="login-error">Email ou mot de passe incorrect.</div>
@@ -203,16 +203,23 @@
     <input type="email" id="add-email" placeholder="prenom.nom@aefe.fr" style="margin-bottom:10px;"/>
     <div class="card-label" style="margin-bottom:6px;">Zone</div>
     <select id="add-zone" style="margin-bottom:10px;">
-      <option value="">Choisir une zone…</option>
-      <option>Afrique centrale et Grands Lacs</option>
-      <option>Afrique du Nord</option>
-      <option>Afrique de l'Ouest</option>
-      <option>Afrique orientale et australe</option>
-      <option>Amériques</option>
-      <option>Asie-Pacifique</option>
-      <option>Europe centrale et orientale</option>
-      <option>Europe occidentale</option>
-      <option>Moyen-Orient</option>
+      <option value="">Choisir une zone AEFE…</option>
+        <option>Afrique occidentale</option>
+        <option>Afrique centrale</option>
+        <option>Afrique australe et orientale</option>
+        <option>Amérique du Nord</option>
+        <option>Amérique latine rythme Nord</option>
+        <option>Amérique latine rythme Sud</option>
+        <option>Asie-Pacifique</option>
+        <option>Europe centrale et orientale</option>
+        <option>Europe du Nord-Ouest et Scandinavie</option>
+        <option>Europe ibérique</option>
+        <option>Europe du Sud-Est</option>
+        <option>Maghreb-Est</option>
+        <option>Maroc</option>
+        <option>Moyen-Orient</option>
+        <option>Océan Indien</option>
+        <option>Proche-Orient</option>
     </select>
     <div class="card-label" style="margin-bottom:6px;">Pays</div>
     <input type="text" id="add-pays" placeholder="Pays" style="margin-bottom:10px;"/>
@@ -327,16 +334,23 @@
     <div class="card" style="margin-bottom:10px;">
       <div class="card-label">Zone géographique <span style="color:var(--red);">*</span></div>
       <select id="dem-zone">
-        <option value="">Choisir une zone…</option>
-        <option>Afrique centrale et Grands Lacs</option>
-        <option>Afrique du Nord</option>
-        <option>Afrique de l'Ouest</option>
-        <option>Afrique orientale et australe</option>
-        <option>Amériques</option>
+        <option value="">Choisir une zone AEFE…</option>
+        <option>Afrique occidentale</option>
+        <option>Afrique centrale</option>
+        <option>Afrique australe et orientale</option>
+        <option>Amérique du Nord</option>
+        <option>Amérique latine rythme Nord</option>
+        <option>Amérique latine rythme Sud</option>
         <option>Asie-Pacifique</option>
         <option>Europe centrale et orientale</option>
-        <option>Europe occidentale</option>
+        <option>Europe du Nord-Ouest et Scandinavie</option>
+        <option>Europe ibérique</option>
+        <option>Europe du Sud-Est</option>
+        <option>Maghreb-Est</option>
+        <option>Maroc</option>
         <option>Moyen-Orient</option>
+        <option>Océan Indien</option>
+        <option>Proche-Orient</option>
       </select>
     </div>
     <div class="card" style="margin-bottom:10px;">
@@ -612,11 +626,11 @@ async function doLogin(){
   errEl.style.display='none';
   if(!email||!pwd){errEl.textContent='Remplissez tous les champs.';errEl.style.display='block';return;}
 
-  // Admin spécial
-  if(email===ADMIN_EMAIL){
+  // Admin spécial : login 'admin' ou email admin
+  const isAdminLogin = (email==='admin' || email===ADMIN_EMAIL);
+  if(isAdminLogin){
     const hash=await hashPwd(pwd);
-    // Vérifier dans la table animateurs
-    const res=await dbGet('animateurs','email=eq.'+encodeURIComponent(email)+'&select=*');
+    const res=await dbGet('animateurs','email=eq.'+encodeURIComponent(ADMIN_EMAIL)+'&select=*');
     if(!res||!res.length){errEl.textContent='Compte introuvable.';errEl.style.display='block';return;}
     const user=res[0];
     if(user.password_hash!==hash){errEl.textContent='Mot de passe incorrect.';errEl.style.display='block';return;}
@@ -777,6 +791,17 @@ async function loadAnimateurs(){
   });
 }
 
+async function adminDeleteSession(code){
+  if(!code) return;
+  const confirmed = await confirmInline('Supprimer la session "'+code+'" ?\nToutes les réponses seront supprimées. Action irréversible.');
+  if(!confirmed) return;
+  const list = document.getElementById('all-sessions-list');
+  list.innerHTML='<div style="text-align:center;padding:1.5rem;color:var(--text-muted);font-size:13px;">Suppression…</div>';
+  await dbDelete('reponses','session_id=eq.'+encodeURIComponent(code));
+  await dbDelete('questions_session','session_id=eq.'+encodeURIComponent(code));
+  loadAllSessions();
+}
+
 function ouvrirAjoutAnimateur(){
   ['add-prenom','add-nom','add-email','add-pays','add-discipline','add-pwd'].forEach(id=>{document.getElementById(id).value='';});
   document.getElementById('add-zone').value='';
@@ -839,6 +864,9 @@ async function loadAllSessions(){
       <div class="session-info">
         <div class="session-code">${esc(s.session_id)}</div>
         <div class="session-meta">🎙 ${esc(animLabel)} · ${date}</div>
+      </div>
+      <div class="session-actions">
+        <button class="btn-del" data-code="${esc(s.session_id)}" onclick="adminDeleteSession(this.dataset.code)" title="Supprimer">🗑</button>
       </div>`;
     list.appendChild(div);
   });
