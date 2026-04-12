@@ -191,6 +191,43 @@
   </div>
 </div>
 
+<!-- ══ MODAL AJOUTER ANIMATEUR ══ -->
+<div class="modal-overlay hidden" id="modal-add-anim">
+  <div class="modal-box">
+    <p class="modal-title">➕ Ajouter un animateur</p>
+    <div class="card-label" style="margin-bottom:6px;">Prénom *</div>
+    <input type="text" id="add-prenom" placeholder="Prénom" style="margin-bottom:10px;"/>
+    <div class="card-label" style="margin-bottom:6px;">Nom *</div>
+    <input type="text" id="add-nom" placeholder="Nom" style="margin-bottom:10px;"/>
+    <div class="card-label" style="margin-bottom:6px;">Email AEFE *</div>
+    <input type="email" id="add-email" placeholder="prenom.nom@aefe.fr" style="margin-bottom:10px;"/>
+    <div class="card-label" style="margin-bottom:6px;">Zone</div>
+    <select id="add-zone" style="margin-bottom:10px;">
+      <option value="">Choisir une zone…</option>
+      <option>Afrique centrale et Grands Lacs</option>
+      <option>Afrique du Nord</option>
+      <option>Afrique de l'Ouest</option>
+      <option>Afrique orientale et australe</option>
+      <option>Amériques</option>
+      <option>Asie-Pacifique</option>
+      <option>Europe centrale et orientale</option>
+      <option>Europe occidentale</option>
+      <option>Moyen-Orient</option>
+    </select>
+    <div class="card-label" style="margin-bottom:6px;">Pays</div>
+    <input type="text" id="add-pays" placeholder="Pays" style="margin-bottom:10px;"/>
+    <div class="card-label" style="margin-bottom:6px;">Discipline</div>
+    <input type="text" id="add-discipline" placeholder="ex. Technologie, SNT…" style="margin-bottom:10px;"/>
+    <div class="card-label" style="margin-bottom:6px;">Mot de passe initial *</div>
+    <input type="text" id="add-pwd" placeholder="Mot de passe temporaire"/>
+    <div class="modal-error" id="add-anim-error"></div>
+    <div class="modal-footer">
+      <button class="btn btn-purple" style="margin-top:0;" onclick="ajouterAnimateur()">Créer le compte</button>
+      <button class="btn btn-ghost" style="width:100%;" onclick="closeModal('modal-add-anim')">Annuler</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══ MODAL CHANGER MOT DE PASSE ══ -->
 <div class="modal-overlay hidden" id="modal-pwd-change">
   <div class="modal-box">
@@ -472,6 +509,9 @@
     </div>
     <!-- Animateurs -->
     <div id="aview-a" style="display:none;">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
+        <button class="btn btn-ghost" onclick="ouvrirAjoutAnimateur()" style="background:var(--purple-light);border-color:var(--purple-mid);color:var(--purple-dark);font-weight:600;">+ Ajouter manuellement</button>
+      </div>
       <div id="animateurs-list"></div>
     </div>
     <!-- Toutes sessions -->
@@ -735,6 +775,42 @@ async function loadAnimateurs(){
       </div>`;
     list.appendChild(div);
   });
+}
+
+function ouvrirAjoutAnimateur(){
+  ['add-prenom','add-nom','add-email','add-pays','add-discipline','add-pwd'].forEach(id=>{document.getElementById(id).value='';});
+  document.getElementById('add-zone').value='';
+  document.getElementById('add-anim-error').style.display='none';
+  document.getElementById('modal-add-anim').classList.remove('hidden');
+  setTimeout(()=>document.getElementById('add-prenom').focus(),100);
+}
+
+async function ajouterAnimateur(){
+  const prenom=document.getElementById('add-prenom').value.trim();
+  const nom=document.getElementById('add-nom').value.trim();
+  const email=document.getElementById('add-email').value.trim().toLowerCase();
+  const zone=document.getElementById('add-zone').value;
+  const pays=document.getElementById('add-pays').value.trim();
+  const discipline=document.getElementById('add-discipline').value.trim();
+  const pwd=document.getElementById('add-pwd').value.trim();
+  const errEl=document.getElementById('add-anim-error');
+  errEl.style.display='none';
+
+  if(!prenom||!nom||!email||!pwd){errEl.textContent='Prénom, nom, email et mot de passe sont obligatoires.';errEl.style.display='block';return;}
+  if(!email.endsWith('@aefe.fr')){errEl.textContent='L'email doit être en @aefe.fr.';errEl.style.display='block';return;}
+  if(pwd.length<6){errEl.textContent='Le mot de passe doit faire au moins 6 caractères.';errEl.style.display='block';return;}
+
+  // Vérifier si déjà existant
+  const existing=await dbGet('animateurs','email=eq.'+encodeURIComponent(email));
+  if(existing&&existing.length){errEl.textContent='Un compte existe déjà pour cet email.';errEl.style.display='block';return;}
+
+  const hash=await hashPwd(pwd);
+  const r=await dbPost('animateurs',{email,nom,prenom,zone:zone||null,pays:pays||null,discipline:discipline||null,password_hash:hash,statut:'actif'});
+  if(!r){errEl.textContent='Erreur lors de la création.';errEl.style.display='block';return;}
+
+  closeModal('modal-add-anim');
+  await confirmInline('✓ Compte créé pour '+prenom+' '+nom+'\n\nEmail : '+email+'\nMot de passe : '+pwd+'\n\nCommuniquez ces informations à l'animateur.');
+  loadAnimateurs();
 }
 
 async function desactiverAnimateur(id,name){
