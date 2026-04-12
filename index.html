@@ -605,7 +605,9 @@ function svcHeaders(){
   return{'apikey':SUPABASE_SERVICE_KEY,'Authorization':'Bearer '+SUPABASE_SERVICE_KEY,'Content-Type':'application/json','Prefer':'return=representation'};
 }
 async function dbGet(table,params=''){
-  const r=await fetch(SUPABASE_URL+'/rest/v1/'+table+'?'+params,{headers:svcHeaders()});
+  const sep = table.includes('?') ? '&' : '?';
+  const url = params ? SUPABASE_URL+'/rest/v1/'+table+sep+params : SUPABASE_URL+'/rest/v1/'+table;
+  const r=await fetch(url,{headers:svcHeaders()});
   return r.ok?await r.json():[];
 }
 async function dbPost(table,body){
@@ -1015,13 +1017,10 @@ async function loadDashboard(){
   let sessions=[];
   try{
     if(currentUser&&!currentUser.isAdmin){
-      // Sessions de cet animateur uniquement
-      const mine = await dbGet('questions_session?select=session_id,updated_at,animateur_id&animateur_id=eq.'+currentUser.id+'&order=updated_at.desc');
+      const mine = await dbGet('questions_session','select=session_id,updated_at,animateur_id&animateur_id=eq.'+currentUser.id+'&order=updated_at.desc');
       sessions = mine||[];
-      // Debug : log pour vérifier
-      console.log('currentUser.id:', currentUser.id, '| sessions trouvées:', sessions.length);
     } else {
-      sessions = await dbGet('questions_session?select=session_id,updated_at,animateur_id&order=updated_at.desc')||[];
+      sessions = await dbGet('questions_session','select=session_id,updated_at,animateur_id&order=updated_at.desc')||[];
     }
   }catch(e){}
   if(!sessions.length){list.innerHTML='<div class="empty-sessions">Aucune session.<br>Créez votre première session !</div>';return;}
@@ -1063,9 +1062,7 @@ async function createSession(){
   const payload={_consigne:JSON.parse(JSON.stringify(DEFAULT_CONSIGNE)),questions:qs};
   const body={session_id:code,questions_json:JSON.stringify(payload),updated_at:new Date().toISOString()};
   if(currentUser) body.animateur_id=currentUser.id;
-  console.log('Création session avec animateur_id:', body.animateur_id);
   const r=await dbPost('questions_session',body);
-  console.log('Résultat création:', JSON.stringify(r));
   if(!r){errEl.textContent='Erreur lors de la création.';errEl.style.display='block';return;}
   closeModal('modal-new-session');
   await loadDashboard();
