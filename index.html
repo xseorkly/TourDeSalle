@@ -1014,9 +1014,15 @@ async function loadDashboard(){
   list.innerHTML='<div style="text-align:center;padding:1.5rem;color:var(--text-muted);font-size:13px;">Chargement…</div>';
   let sessions=[];
   try{
-    let url='questions_session?select=session_id,updated_at&order=updated_at.desc';
-    if(currentUser&&!currentUser.isAdmin) url+='&animateur_id=eq.'+currentUser.id;
-    sessions=await dbGet(url)||[];
+    if(currentUser&&!currentUser.isAdmin){
+      // Sessions de cet animateur uniquement
+      const mine = await dbGet('questions_session?select=session_id,updated_at,animateur_id&animateur_id=eq.'+currentUser.id+'&order=updated_at.desc');
+      sessions = mine||[];
+      // Debug : log pour vérifier
+      console.log('currentUser.id:', currentUser.id, '| sessions trouvées:', sessions.length);
+    } else {
+      sessions = await dbGet('questions_session?select=session_id,updated_at,animateur_id&order=updated_at.desc')||[];
+    }
   }catch(e){}
   if(!sessions.length){list.innerHTML='<div class="empty-sessions">Aucune session.<br>Créez votre première session !</div>';return;}
   list.innerHTML='';
@@ -1057,7 +1063,9 @@ async function createSession(){
   const payload={_consigne:JSON.parse(JSON.stringify(DEFAULT_CONSIGNE)),questions:qs};
   const body={session_id:code,questions_json:JSON.stringify(payload),updated_at:new Date().toISOString()};
   if(currentUser) body.animateur_id=currentUser.id;
+  console.log('Création session avec animateur_id:', body.animateur_id);
   const r=await dbPost('questions_session',body);
+  console.log('Résultat création:', JSON.stringify(r));
   if(!r){errEl.textContent='Erreur lors de la création.';errEl.style.display='block';return;}
   closeModal('modal-new-session');
   await loadDashboard();
