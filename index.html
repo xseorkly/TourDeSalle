@@ -727,11 +727,13 @@ async function loadDemandes(){
         📚 ${esc(d.discipline)}<br>
         📅 ${new Date(d.created_at).toLocaleDateString('fr-FR')}
       </div>
-      ${d.statut==='en_attente'?`
       <div class="demande-actions">
-        <button style="flex:1;padding:9px;background:var(--green);color:#fff;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;" data-id="${d.id}" onclick="accepterDemande(this.dataset.id)">✓ Accepter</button>
-        <button style="flex:1;padding:9px;background:var(--red);color:#fff;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;" data-id="${d.id}" onclick="refuserDemande(this.dataset.id)">✗ Refuser</button>
-      </div>`:''}`;
+        ${d.statut==='en_attente'?`
+          <button style="flex:1;padding:9px;background:var(--green);color:#fff;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;" data-id="${d.id}" onclick="accepterDemande(this.dataset.id)">✓ Accepter</button>
+          <button style="flex:1;padding:9px;background:var(--red);color:#fff;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;" data-id="${d.id}" onclick="refuserDemande(this.dataset.id)">✗ Refuser</button>
+        `:''}
+        <button class="btn-del" style="padding:9px 12px;" data-id="${d.id}" onclick="supprimerDemande(this.dataset.id)" title="Supprimer cette demande">🗑</button>
+      </div>`;
     list.appendChild(div);
   });
 }
@@ -753,6 +755,13 @@ async function accepterDemande(id){
   // Mettre à jour la demande
   await dbPatch('demandes','id=eq.'+id,{statut:'accepté'});
   await confirmInline(`✓ Compte créé pour ${d.prenom} ${d.nom}\n\nMot de passe temporaire : ${tmpPwd}\n\nCommuniquez-le à l'animateur par email.`);
+  loadDemandes();
+}
+
+async function supprimerDemande(id){
+  const confirmed = await confirmInline('Supprimer définitivement cette demande ?');
+  if(!confirmed) return;
+  await dbDelete('demandes','id=eq.'+id);
   loadDemandes();
 }
 
