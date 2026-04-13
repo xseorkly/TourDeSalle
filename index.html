@@ -606,6 +606,22 @@ let pwdChangeTarget=null; // {id, email} de l'animateur dont on change le mdp
 
 try{sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);}catch(e){}
 
+// Détecter si une session est passée en paramètre URL (?session=xxx)
+window.addEventListener('load', ()=>{
+  const params = new URLSearchParams(window.location.search);
+  const sessionParam = params.get('session');
+  if(sessionParam){
+    // Pré-remplir le code et masquer le champ
+    document.getElementById('session-code').value = sessionParam;
+    document.getElementById('session-code').closest('.card').style.display = 'none';
+    // Afficher un message informatif
+    const info = document.createElement('div');
+    info.style.cssText = 'background:var(--purple-light);border-radius:var(--radius-sm);padding:8px 12px;font-size:13px;color:var(--purple-dark);margin-bottom:12px;text-align:center;';
+    info.innerHTML = '🎙 Session : <strong>' + sessionParam + '</strong>';
+    document.getElementById('btn-start-participant').insertAdjacentElement('beforebegin', info);
+  }
+});
+
 // ── Helpers REST ────────────────────────────────────
 function svcHeaders(){
   return{'apikey':SUPABASE_SERVICE_KEY,'Authorization':'Bearer '+SUPABASE_SERVICE_KEY,'Content-Type':'application/json','Prefer':'return=representation'};
@@ -1115,7 +1131,9 @@ async function openSession(code){
   await loadQuestions();
   document.getElementById('session-display-header').textContent=code;
   document.getElementById('session-display').textContent=code;
-  document.getElementById('qr-url').textContent=window.location.href;
+  // URL directe avec le code de session pré-rempli
+  const sessionUrl = window.location.origin + window.location.pathname + '?session=' + encodeURIComponent(code);
+  document.getElementById('qr-url').textContent=sessionUrl;
   // QR sera généré quand l'onglet sera ouvert
   showPhase('ph3');
   switchTab('t');
@@ -1519,7 +1537,7 @@ function confirmInline(msg){
 let qrInstance = null;
 
 function generateQR(){
-  const url = window.location.href;
+  const url = document.getElementById('qr-url')?.textContent || window.location.href;
   const container = document.getElementById('qr-code-container');
   if(!container) return;
   container.innerHTML = '';
