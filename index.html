@@ -578,7 +578,7 @@ const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSI
 const SUPABASE_SERVICE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ5cGt1dGhvdHlqYWlnZG9ob2l6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDI2MjUwNywiZXhwIjoyMDg5ODM4NTA3fQ.-n1XNTUmpry51JNCUeaBpZg__q_Z0IxQefleYIWZxmA';
 const ADMIN_EMAIL='fehmi.klabi@aefe.fr';
 const GEMINI_KEY='AIzaSyDOmSxdzFBN_xFxEHpaRsd_p2kqTj46w9A';
-const RESEND_KEY='re_GdicSG3f_6Mm3Rxv9GUbnUDvRPrTCF21n';
+const GOOGLE_SCRIPT_URL='https://script.google.com/macros/s/AKfycbxZYCnEBJ8e_ngJd69yD45autjq8FU3YUIesI2SyVCaAxf09-ABeXnynkUKNQ_MDi_ROg/exec';
 const GEMINI_URL='https://generativelanguage.googleapis.com/v1beta/models/';
 const GEMINI_MODELS=['gemini-2.0-flash','gemini-2.0-flash-lite','gemini-1.5-flash','gemini-pro'];
 
@@ -728,6 +728,7 @@ async function envoyerDemande(){
 
   const ok=await dbPost('demandes',{email,nom,prenom,zone,pays,discipline,statut:'en_attente'});
   if(!ok){errEl.textContent='Erreur lors de l\'envoi. Réessayez.';errEl.style.display='block';return;}
+  await sendNotifNouvelleDemandeAdmin(prenom,nom,email,zone,pays,discipline);
   showPhase('ph-demande-ok');
 }
 
@@ -1452,63 +1453,40 @@ function copyPrompt(mode){
   navigator.clipboard.writeText(prompt).then(()=>{const ok=document.getElementById('copy-ok');ok.style.display='block';setTimeout(()=>ok.style.display='none',3000);}).catch(()=>{const ta=document.createElement('textarea');ta.value=prompt;ta.style.cssText='position:fixed;top:0;left:0;width:100%;height:200px;z-index:9999;font-size:12px;padding:10px;';document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);const ok=document.getElementById('copy-ok');ok.style.display='block';setTimeout(()=>ok.style.display='none',3000);});
 }
 
-// ── ENVOI EMAIL RESEND ────────────────────────────────
+// ── ENVOI EMAIL VIA GOOGLE APPS SCRIPT ────────────────
 async function sendWelcomeEmail(prenom, nom, email, tmpPwd){
   const appUrl = window.location.href;
-  const html = `
-    <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
-      <div style="background:#7F77DD;padding:20px;border-radius:12px 12px 0 0;text-align:center;">
-        <h1 style="color:#fff;margin:0;font-size:24px;">🪑 TourDeSalle</h1>
-        <p style="color:#EEEDFE;margin:6px 0 0;font-size:13px;">Le tour de table numérique</p>
-      </div>
-      <div style="background:#fff;padding:30px;border:1px solid #e5e7eb;border-top:none;">
-        <h2 style="color:#26215C;margin:0 0 16px;">Bienvenue ${prenom} ${nom} !</h2>
-        <p style="color:#374151;line-height:1.6;">Votre demande d'accès à <strong>TourDeSalle</strong> a été validée par l'administrateur. Vous pouvez dès maintenant vous connecter et créer vos sessions de formation.</p>
-        
-        <div style="background:#F8F7F4;border-radius:8px;padding:20px;margin:20px 0;border-left:4px solid #7F77DD;">
-          <p style="margin:0 0 8px;font-size:13px;color:#6b6b6b;text-transform:uppercase;font-weight:600;letter-spacing:.05em;">Vos identifiants de connexion</p>
-          <p style="margin:0 0 6px;color:#1a1a1a;"><strong>Email :</strong> ${email}</p>
-          <p style="margin:0;color:#1a1a1a;"><strong>Mot de passe temporaire :</strong> <span style="background:#EEEDFE;color:#26215C;padding:3px 10px;border-radius:6px;font-family:monospace;font-size:15px;font-weight:700;">${tmpPwd}</span></p>
-        </div>
-        
-        <p style="color:#374151;line-height:1.6;">⚠️ <strong>Changez votre mot de passe</strong> dès votre première connexion depuis votre tableau de bord.</p>
-        
-        <div style="text-align:center;margin:28px 0;">
-          <a href="${appUrl}" style="background:#7F77DD;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:600;font-size:15px;display:inline-block;">Se connecter à TourDeSalle</a>
-        </div>
-        
-        <p style="color:#6b6b6b;font-size:13px;line-height:1.6;">Pour vous connecter, cliquez sur <strong>"Connexion animateur"</strong> en bas de la page et saisissez votre email et mot de passe.</p>
-      </div>
-      <div style="background:#F8F7F4;padding:16px;border-radius:0 0 12px 12px;text-align:center;border:1px solid #e5e7eb;border-top:none;">
-        <p style="margin:0;font-size:12px;color:#9a9a9a;">TourDeSalle · Créé par <strong>Fehmi Klabi</strong> · fehmi.klabi@aefe.fr · Développé avec Claude (Anthropic)</p>
-      </div>
-    </div>`;
-
   try {
-    const r = await fetch('https://api.resend.com/emails', {
+    const r = await fetch(GOOGLE_SCRIPT_URL, {
       method: 'POST',
-      headers: {
-        'Authorization': 'Bearer '+RESEND_KEY,
-        'Content-Type': 'application/json'
-      },
+      headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
-        from: 'TourDeSalle <onboarding@resend.dev>',
-        to: [email],
-        subject: '🪑 Bienvenue sur TourDeSalle — Vos identifiants de connexion',
-        html: html
+        type: 'bienvenue',
+        prenom, nom, email, tmpPwd, appUrl
       })
     });
-    if(r.ok){
-      console.log('Email envoyé à', email);
-      return true;
-    } else {
-      const err = await r.json();
-      console.error('Erreur Resend:', err);
-      return false;
-    }
+    if(r.ok){ console.log('Email bienvenue envoyé à', email); return true; }
+    console.error('Erreur Google Script:', await r.text());
+    return false;
   } catch(e) {
     console.error('Erreur envoi email:', e);
     return false;
+  }
+}
+
+async function sendNotifNouvelleDemandeAdmin(prenom, nom, email, zone, pays, discipline){
+  const appUrl = window.location.href;
+  try {
+    await fetch(GOOGLE_SCRIPT_URL, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        type: 'nouvelle_demande',
+        prenom, nom, email, zone, pays, discipline, appUrl
+      })
+    });
+  } catch(e) {
+    console.warn('Notif admin non envoyée:', e);
   }
 }
 
