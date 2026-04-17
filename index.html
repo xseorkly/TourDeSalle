@@ -1457,17 +1457,9 @@ function copyPrompt(mode){
 async function sendWelcomeEmail(prenom, nom, email, tmpPwd){
   const appUrl = window.location.href;
   try {
-    const r = await fetch(GOOGLE_SCRIPT_URL, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
-        type: 'bienvenue',
-        prenom, nom, email, tmpPwd, appUrl
-      })
-    });
-    if(r.ok){ console.log('Email bienvenue envoyé à', email); return true; }
-    console.error('Erreur Google Script:', await r.text());
-    return false;
+    const params = new URLSearchParams({type:'bienvenue', prenom, nom, email, tmpPwd, appUrl});
+    await fetch(GOOGLE_SCRIPT_URL + '?' + params.toString(), {method:'GET', mode:'no-cors'});
+    return true;
   } catch(e) {
     console.error('Erreur envoi email:', e);
     return false;
@@ -1477,14 +1469,8 @@ async function sendWelcomeEmail(prenom, nom, email, tmpPwd){
 async function sendNotifNouvelleDemandeAdmin(prenom, nom, email, zone, pays, discipline){
   const appUrl = window.location.href;
   try {
-    await fetch(GOOGLE_SCRIPT_URL, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
-        type: 'nouvelle_demande',
-        prenom, nom, email, zone, pays, discipline, appUrl
-      })
-    });
+    const params = new URLSearchParams({type:'nouvelle_demande', prenom, nom, email, zone, pays, discipline, appUrl});
+    await fetch(GOOGLE_SCRIPT_URL + '?' + params.toString(), {method:'GET', mode:'no-cors'});
   } catch(e) {
     console.warn('Notif admin non envoyée:', e);
   }
